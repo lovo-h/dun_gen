@@ -4,13 +4,9 @@ Created on: 5/3/2015
 
 This dungeon generator was created as a demo for WillowTreeApps.
 """
-from entities import Wall, Floor, Room, Stairs, Key, AestheticObject, map_theme
+from entities import Wall, Floor, Room, Stairs, Key, AestheticObject, Enemy, map_theme
 import random
 from pygame.sprite import Group
-
-# constants
-LAND_WIDTH = 80
-LAND_HEIGHT = 50
 
 
 class TheMap(object):
@@ -18,13 +14,15 @@ class TheMap(object):
     This class holds the landscape of the map and other relevant information.
     """
 
-    def __init__(self, width=LAND_WIDTH, height=LAND_HEIGHT):
+    def __init__(self, width=40, height=40):
         self.theme_num = random.randint(0, len(map_theme) - 1)
         self.landscape = [[Wall(x * 32, y * 32, self.theme_num) for x in range(width + 1)] for y in range(height + 1)]
         self.width = len(self.landscape[0]) - 1
         self.height = len(self.landscape) - 1
         self.player_start_loc = None
         self.map_objects = {"other": Group(), "stairs": Group(), "keys": Group()}
+        self.enemies_lst = Group()
+        self.probability_enemy_appears = 0
         self.initialize()
 
     def create_room(self, room):
@@ -75,16 +73,16 @@ class TheMap(object):
         obj = AestheticObject(x, y, self.theme_num)
         self.map_objects["other"].add(obj)
 
-    def initialize(self):
-        """
-        Initializes the map:
-            - places a random configuration of rooms on the map.
-            - places a spot for the player to start from
-            - places the keys on the map
-        """
-        rooms = list()
+    def add_enemies(self, room):
+        (x, y) = get_valid_room_coords(room)
+        enemy = Enemy(x, y)
+        self.enemies_lst.add(enemy)
+
+    def generate_rooms_around_map(self, rooms):
         room_tries = len(self.landscape) * len(self.landscape[0]) >> 7
         max_room_dimension = max(5, room_tries >> 2)
+        if max_room_dimension > 14:
+            max_room_dimension = 14
         for n in range(room_tries):
             failed = False
             w = random.randint(4, max_room_dimension)
@@ -122,10 +120,22 @@ class TheMap(object):
                 # place some aesthetic in the room
                 if random.randint(0, 2) == 1:
                     self.add_aesthetic_obj(current_room)
+
+    def initialize(self):
+        """
+        Initializes the map:
+            - places a random configuration of rooms on the map.
+            - places a spot for the player to start from
+            - places the keys on the map
+        """
+        rooms = list()
+        self.generate_rooms_around_map(rooms)
         # place the exit randomly
         indx = random.randrange(len(rooms))
         some_room = rooms.pop(indx)
         self.add_stairs(some_room)
+        # put nothing where player begins
+        rooms.pop(0)
         # how many keys to place: try 4 or more, else: however many rooms exist
         if len(rooms) > 3:
             placeable_keys = random.randint(4, 8)
@@ -136,6 +146,9 @@ class TheMap(object):
             indx = random.randrange(len(rooms))
             some_room = rooms.pop(indx)
             self.add_keys(some_room)
+            # add a guard
+            if random.randint(0, 20 - self.probability_enemy_appears) < 5:  # init: 20% probability
+                self.add_enemies(some_room)
 
     def create_h_hall(self, pcx, ncx, pcy):
         """

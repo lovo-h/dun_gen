@@ -47,12 +47,13 @@ map_theme = {
 }
 
 # constants
-PLAYER_FACING_UP = 0
-PLAYER_FACING_LEFT = 1
-PLAYER_FACING_DOWN = 2
-PLAYER_FACING_RIGHT = 3
+CHARACTER_FACING_UP = 0
+CHARACTER_FACING_LEFT = 1
+CHARACTER_FACING_DOWN = 2
+CHARACTER_FACING_RIGHT = 3
 
 PLAYER_FOV_DIST = 6
+ENEMY_FOV_DIST = 4
 
 
 class Entity(pygame.sprite.Sprite):
@@ -178,6 +179,7 @@ class SpriteSheet(object):
         :return:
         """
         rect = pygame.Rect(rectangle)
+        # noinspection PyArgumentList
         image = pygame.Surface(rect.size).convert()
         image.blit(self.sheet, (0, 0), rect)
         if colorkey is not None:
@@ -202,22 +204,12 @@ class Enemy(pygame.sprite.Sprite):
     be similar to the Player class.
     """
 
-    def __init__(self, left, top, img_file_name):
-        super(Enemy, self).__init__(left, top, img_file_name)
-
-
-class Player(pygame.sprite.Sprite):
-    """
-    This class represents the main player.
-    """
-
-    def __init__(self):
+    def __init__(self, left, top):
         pygame.sprite.Sprite.__init__(self)
-        # TODO: speed should be 4; change offsets based around 4 (instead of 8)
-        self.radius = PLAYER_FOV_DIST << 5
+        self.radius = ENEMY_FOV_DIST << 5
         # steps to move
-        self.dx = 4
-        self.dy = 4
+        self.dx = 1
+        self.dy = 1
         # used for animation
         self.frames = 9
         self.frames_row = 4
@@ -232,7 +224,111 @@ class Player(pygame.sprite.Sprite):
             self.images_lst.append(sprite_row)
         self.img_frame_num = 0
         # init image
-        self.image = self.images_lst[PLAYER_FACING_DOWN][0]
+        self.image = self.images_lst[CHARACTER_FACING_DOWN][0]
+        # init rect
+        self.rect = self.image.get_rect()
+        # used for collision detection
+        self.dummy_sprite = EmptySprite(Rect(0, 0, 4, 8))
+        # set coords
+        self.rect.left = left
+        self.rect.top = top
+
+    def move_towards_player(self, my_map, player_rect, other_objs):
+        """
+        Moves the player around the map. Determines if the player is colliding with a wall,
+         is able to pick up a key, and if is able to go on to the next level.
+        :param my_map: (map) holds map data
+        :param player_rect: (Rect) player coordinate, height, width info
+        :param other_objs: (list) objects that cannot be traversed through: tombs/rocks/desks/etc.
+        """
+        # used for detecting collision
+        x_move = 0
+        y_move = 0
+        offset_x = 8
+        offset_y = 16
+
+        player_dist_x = player_rect.x - self.rect.x
+        player_dist_y = player_rect.y - self.rect.y
+
+        if player_dist_x > 4:
+            # moving right
+            x_move += self.dx
+            offset_x = 16
+            offset_y = 16
+        elif player_dist_x <= 4:
+            # moving left
+            x_move -= self.dx
+        if player_dist_y > 4:
+            # moving up
+            y_move += self.dy
+        elif player_dist_y <= 4:
+            # moving down
+            y_move -= self.dy
+
+        x_val = self.rect.x + x_move + offset_x
+        y_val = self.rect.y + y_move + offset_y
+
+        # enemy object collision detection
+        obj_collision = False
+        self.dummy_sprite.rect.x = x_val
+        self.dummy_sprite.y = y_val
+        for obj in other_objs:
+            obj_collision = pygame.sprite.collide_rect(self.dummy_sprite, obj)
+            if obj_collision:
+                break
+        # determine if player can move in x-y direction
+        is_passable = not my_map[(self.rect.y + y_move + offset_y) >> 5][(self.rect.x + x_move + offset_x) >> 5].blocked
+        if is_passable and not obj_collision:
+            self.rect.move_ip(x_move, y_move)
+            # enemy animation
+            if self.img_frame_num < self.frames - 1:
+                if self.elapsed_frames > 1:
+                    self.img_frame_num += 1
+                    self.elapsed_frames = -1
+            else:
+                self.img_frame_num = 0
+        # direction in which player is facing
+        if abs(player_dist_y) > abs(player_dist_x):  # up or down
+            if player_dist_y > 0:
+                facing = CHARACTER_FACING_DOWN
+            else:
+                facing = CHARACTER_FACING_UP
+        else:  # left or right
+            if player_dist_x > 0:
+                facing = CHARACTER_FACING_RIGHT
+            else:
+                facing = CHARACTER_FACING_LEFT
+        self.elapsed_frames += 1
+        self.image = self.images_lst[facing][self.img_frame_num]
+
+
+class Player(pygame.sprite.Sprite):
+    """
+    This class represents the main player.
+    """
+
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.radius = PLAYER_FOV_DIST << 5
+        # steps to move
+        self.dx = 8
+        self.dy = 8
+        # used for animation
+        self.frames = 9
+        self.frames_row = 4
+        self.elapsed_frames = 0
+        player_sprites = SpriteSheet("player_walk_sprite.png")
+        self.images_lst = list()
+        for x in range(self.frames_row):
+            tuple_lst = list()
+            for frame in range(self.frames):
+                tuple_lst.append((frame << 5, x << 5, 32, 32))
+            sprite_row = player_sprites.images_at(tuple_lst, colorkey=-1)
+            self.images_lst.append(sprite_row)
+        self.img_frame_num = 0
+        # init image
+        self.image = self.images_lst[CHARACTER_FACING_DOWN][0]
+        self.dummy_sprite = EmptySprite(Rect(0, 0, 4, 8))
         # init rect
         self.rect = self.image.get_rect()
 
@@ -250,27 +346,28 @@ class Player(pygame.sprite.Sprite):
         offset_x = 0
         offset_y = 0
         # initial direction to face-in
-        facing = PLAYER_FACING_DOWN
+        facing = CHARACTER_FACING_DOWN
 
         if key == K_RIGHT:
             x_move = self.dx
             offset_x = 16
-            offset_y = 12
-            facing = PLAYER_FACING_RIGHT
+            offset_y = 16
+            facing = CHARACTER_FACING_RIGHT
         elif key == K_LEFT:
             x_move = -self.dx
-            offset_x = 12
-            offset_y = 12
-            facing = PLAYER_FACING_LEFT
+            offset_x = 8
+            offset_y = 16
+            facing = CHARACTER_FACING_LEFT
         elif key == K_UP:
             y_move = -self.dy
-            offset_x = 12
-            offset_y = 12
-            facing = PLAYER_FACING_UP
+            offset_x = 8
+            offset_y = 16
+            facing = CHARACTER_FACING_UP
         elif key == K_DOWN:
             y_move = self.dy
+            offset_x = 8
             offset_y = 16
-            offset_x = 12
+
         # player animation
         if self.img_frame_num < self.frames - 1:
             if self.elapsed_frames > 1:
@@ -284,9 +381,10 @@ class Player(pygame.sprite.Sprite):
         obj_collision = False
         x_val = self.rect.x + x_move + offset_x
         y_val = self.rect.y + y_move + offset_y
-        dummy_sprite = EmptySprite(Rect(x_val, y_val, 4, 8))
+        self.dummy_sprite.rect.x = x_val
+        self.dummy_sprite.rect.y = y_val
         for obj in other_objs:
-            obj_collision = pygame.sprite.collide_rect(dummy_sprite, obj)
+            obj_collision = pygame.sprite.collide_rect(self.dummy_sprite, obj)
             if obj_collision:
                 break
         # determine if player can move in x-y direction

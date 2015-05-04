@@ -65,6 +65,8 @@ class DunGen:
         self.background = pygame.Surface((self.window_width, self.window_height))
         # generate the map
         self.map = TheMap(LAND_WIDTH, LAND_HEIGHT)
+        # probability of enemy appearing
+        self.enemy_prob = 0
         # creates the clock
         self.clock = pygame.time.Clock()
         # init player
@@ -75,6 +77,45 @@ class DunGen:
         # create the camera
         self.camera = Camera(complex_camera, self.map.width << 5, self.map.height << 5, self.window_width,
                              self.window_height)
+        # debugging
+        self.debug_mode = False
+        self.god_mode = False
+        # used for demo
+        self.seen_first_key = False
+        self.seen_first_stairs = False
+
+    def main_loop(self):
+        """
+        This initializes everything and starts the main-loop.
+        """
+        # allows key-strokes to repeat if they're held down
+        pygame.key.set_repeat(60, 30)
+        # clear the background: black
+        self.background = self.background.convert()
+        self.background.fill((0, 0, 0))
+        while 1:
+            self.clock.tick(60)  # displays 60 max-fps
+            self.controller()
+            self.view()
+
+    def view(self):
+        """
+        Handles all of the display functionality.
+        """
+        self.draw_walls_floors_to_screen()
+        self.draw_objects_to_screen()
+        self.keys_remaining_msg()
+        self.draw_demo_msg()
+        self.draw_debug_msg()
+
+        for sprite in self.map.enemies_lst:
+            if pygame.sprite.collide_circle(sprite, self.player) or self.god_mode:
+                self.screen.blit(sprite.image, self.camera.apply(sprite))
+        # draw player
+        for sprite in self.player_sprites:
+            self.screen.blit(sprite.image, self.camera.apply(sprite))
+        # present changes to window
+        pygame.display.flip()
 
     def controller(self):
         """
@@ -86,20 +127,36 @@ class DunGen:
                     self.player.move(self.map.landscape, self.map.map_objects["other"], e.key)
                 elif e.key == K_SPACE:
                     # determine if keys are around; remove the key if found
-                    pygame.sprite.spritecollide(self.player, self.map.map_objects["keys"], True)
+                    if pygame.sprite.spritecollide(self.player, self.map.map_objects["keys"], True):
+                        self.seen_first_key = True
                     # determine if all keys have been collected and player's at a stairwell
                     if len(self.map.map_objects["keys"]) == 0 and pygame.sprite.spritecollide(self.player,
                                                                                               self.map.map_objects[
                                                                                                   "stairs"], False):
+                        self.seen_first_stairs = True
                         self.load_new_map()
-                elif e.key == K_s:
-                    self.map.width -= 2
-                    self.map.height -= 2
-                    self.load_new_map()
+                elif e.key == K_d:
+                    self.debug_mode = not self.debug_mode
+                    if self.god_mode:
+                        self.god_mode = not self.god_mode
+                elif self.debug_mode and e.key == K_g:
+                    self.god_mode = not self.god_mode
                 elif e.key == K_ESCAPE:
                     quit()
+
+                if self.debug_mode:
+                    if e.key == K_s:
+                        self.map.width -= 2
+                        self.map.height -= 2
+                        self.load_new_map()
+
             elif e.type == QUIT:
                 quit()
+
+        # move the enemies towards the player, if near enough
+        for enemy_sprite in self.map.enemies_lst:
+            if pygame.sprite.collide_circle(enemy_sprite, self.player):
+                enemy_sprite.move_towards_player(self.map.landscape, self.player.rect, self.map.map_objects["other"])
 
     def load_new_map(self):
         """
@@ -115,6 +172,9 @@ class DunGen:
         # generate a new game
         self.map = TheMap(self.map.width + 2, self.map.height + 2)
         self.player.rect.left, self.player.rect.top = self.map.player_start_loc
+        if self.enemy_prob < 20:
+            self.enemy_prob += 1
+        self.map.probability_enemy_appears = self.enemy_prob
         self.camera = Camera(complex_camera, self.map.width << 5, self.map.height << 5,
                              self.window_width,
                              self.window_height)
@@ -133,9 +193,9 @@ class DunGen:
         """
         if pygame.font:
             if not pos_x:
-                pos_x = self.background.get_width() >> 1
+                pos_x = self.window_width >> 1
             if not pos_y:
-                pos_y = self.background.get_height() >> 1
+                pos_y = self.window_height >> 1
             font = pygame.font.Font(None, font_size)
             text = font.render(msg, 1, rgb_color)
             text_pos = text.get_rect(centerx=pos_x, centery=pos_y)
@@ -157,10 +217,11 @@ class DunGen:
         for x in range(cam_x1, cam_x2):
             for y in range(cam_y1, cam_y2):
                 sprite = self.map.landscape[y][x]
-                if pygame.sprite.collide_circle(sprite, self.player):
+                if pygame.sprite.collide_circle(sprite, self.player) or self.god_mode:
                     near_viewable = True and not sprite.block_sight
                 else:
                     near_viewable = False
+
                 if near_viewable or sprite.visited:  # light sprites nearby and shadow visited sprites
                     if not sprite.block_sight:
                         sprite.visited = True
@@ -175,7 +236,7 @@ class DunGen:
         """
         for object_groups in self.map.map_objects:
             for sprite in self.map.map_objects[object_groups]:
-                if pygame.sprite.collide_circle(sprite, self.player):
+                if pygame.sprite.collide_circle(sprite, self.player) or self.god_mode:
                     near_viewable = True and not sprite.block_sight
                 else:
                     near_viewable = False
@@ -186,19 +247,6 @@ class DunGen:
                             self.screen.blit(sprite.image, self.camera.apply(sprite))
                         else:
                             self.screen.blit(sprite.drk_image, self.camera.apply(sprite))
-
-    def view(self):
-        """
-        Handles all of the display functionality.
-        """
-        self.draw_walls_floors_to_screen()
-        self.draw_objects_to_screen()
-        self.keys_remaining_msg()
-        # draw player
-        for sprite in self.player_sprites:
-            self.screen.blit(sprite.image, self.camera.apply(sprite))
-        # present changes to window
-        pygame.display.flip()
 
     def keys_remaining_msg(self):
         """
@@ -215,19 +263,48 @@ class DunGen:
         else:
             self.display_text_to_screen(36, "Climb the stairs!", rgb_color=(255, 0, 0), pos_y=pos_y)
 
-    def main_loop(self):
+    def draw_debug_msg(self):
         """
-        This initializes everything and starts the main-loop.
+        Displays debug information at the top right of the screen
+        :return:
         """
-        # allows key-strokes to repeat if they're held down
-        pygame.key.set_repeat(500, 30)
-        # clear the background: black
-        self.background = self.background.convert()
-        self.background.fill((0, 0, 0))
-        while 1:
-            self.clock.tick(60)  # displays 60 max-fps
-            self.controller()
-            self.view()
+        text_pos_x = self.window_width - 100
+        text_pos_y = 30
+        text_offset = 14
+        if self.debug_mode:
+            self.display_text_to_screen(16, "Debug mode(d): on", pos_x=text_pos_x, pos_y=text_pos_y)
+            if self.god_mode:
+                self.display_text_to_screen(16, "God mode(g): on", pos_x=text_pos_x, pos_y=text_pos_y + text_offset)
+            else:
+                self.display_text_to_screen(16, "God mode(g): off", pos_x=text_pos_x, pos_y=text_pos_y + text_offset)
+
+            self.display_text_to_screen(16, "Skip level key: s", pos_x=text_pos_x,
+                                        pos_y=text_pos_y + (text_offset << 1))
+        else:
+            self.display_text_to_screen(16, "Debug mode(d): off", pos_x=text_pos_x, pos_y=text_pos_y)
+
+        enemy_lst = pygame.sprite.spritecollide(self.player, self.map.enemies_lst, False)
+        if enemy_lst:
+            self.display_text_to_screen(16, "This is when he realizes he hasn't been programmed any weapons",
+                                        pos_y=(self.window_height >> 1) + 40)
+
+    def draw_demo_msg(self):
+        """
+        Displays a message the first time the player is on a key or stair
+        """
+        if not self.seen_first_key:
+            color = (255, 255, 0)  # yellow
+            key_lst = pygame.sprite.spritecollide(self.player, self.map.map_objects["keys"], False)
+            if key_lst:
+                self.display_text_to_screen(32, "Press the SPACE BAR to collect the key", rgb_color=color)
+        if not self.seen_first_stairs:
+            color = (255, 255, 0)  # yellow
+            stair_lst = pygame.sprite.spritecollide(self.player, self.map.map_objects["stairs"], False)
+            if stair_lst:
+                if len(self.map.map_objects["keys"]) == 0:
+                    self.display_text_to_screen(32, "Press the SPACE BAR to climb the stairs", rgb_color=color)
+                else:
+                    self.display_text_to_screen(32, "Collect all of the keys and then come back", rgb_color=color)
 
 
 if __name__ == "__main__":
