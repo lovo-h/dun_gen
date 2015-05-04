@@ -74,14 +74,23 @@ class TheMap(object):
         self.map_objects["other"].add(obj)
 
     def add_enemies(self, room):
+        """
+        Places enemy in some room on the map that contains a key.
+        :param room: (room object) holds x-y coordinates, height, and width of the room
+        """
         (x, y) = get_valid_room_coords(room)
         enemy = Enemy(x, y)
         self.enemies_lst.add(enemy)
 
     def generate_rooms_around_map(self, rooms):
-        room_tries = len(self.landscape) * len(self.landscape[0]) >> 7
-        max_room_dimension = max(5, room_tries >> 2)
-        if max_room_dimension > 14:
+        """
+        Generates a bunch of rooms and places them on the map if they do not
+        collide with each other.
+        :param rooms: (list) will hold the rooms generated
+        """
+        room_tries = len(self.landscape) * len(self.landscape[0]) >> 7  # times to try to create room: area / 128
+        max_room_dimension = max(5, room_tries >> 2)  # max-room-dimension: max(5, area / 512)
+        if max_room_dimension > 14:  # bound of room dimension: 14
             max_room_dimension = 14
         for n in range(room_tries):
             failed = False
@@ -127,6 +136,7 @@ class TheMap(object):
             - places a random configuration of rooms on the map.
             - places a spot for the player to start from
             - places the keys on the map
+            - probably places a guard near the key; depends on probability
         """
         rooms = list()
         self.generate_rooms_around_map(rooms)
@@ -152,7 +162,8 @@ class TheMap(object):
 
     def create_h_hall(self, pcx, ncx, pcy):
         """
-        Creates the horizontal hallway from room-A to room-B.
+        Creates the horizontal hallway from room-A to room-B. Also, makes the
+        hall's walls illuminable.
         :param pcx: (int) previous room's x-center coordinate
         :param ncx: (int) new room's x-center coordinate
         :param pcy: (int) previous room's y-center coordinate
@@ -165,7 +176,8 @@ class TheMap(object):
 
     def create_v_hall(self, pcy, ncy, pcx):
         """
-        Creates the vertical hallway from room-A to room-B.
+        Creates the vertical hallway from room-A to room-B.  Also, makes the
+        hall's walls illuminable.
         :param pcy: (int) previous room's y-center coordinate
         :param ncy: (int) new room's x-center coordinate
         :param pcx: (int) previous room's x-center coordinate

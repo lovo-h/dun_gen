@@ -235,21 +235,20 @@ class Enemy(pygame.sprite.Sprite):
 
     def move_towards_player(self, my_map, player_rect, other_objs):
         """
-        Moves the player around the map. Determines if the player is colliding with a wall,
-         is able to pick up a key, and if is able to go on to the next level.
+        Moves the enemy towards the player. Determines if the enemy is colliding with a wall or an object.
         :param my_map: (map) holds map data
         :param player_rect: (Rect) player coordinate, height, width info
-        :param other_objs: (list) objects that cannot be traversed through: tombs/rocks/desks/etc.
+        :param other_objs: (list) objects that cannot be traversed through: tombstones/rocks/desks/etc.
         """
         # used for detecting collision
         x_move = 0
         y_move = 0
         offset_x = 8
         offset_y = 16
-
+        # slope vars
         player_dist_x = player_rect.x - self.rect.x
         player_dist_y = player_rect.y - self.rect.y
-
+        # determine enemy direction to move
         if player_dist_x > 4:
             # moving right
             x_move += self.dx
@@ -264,10 +263,9 @@ class Enemy(pygame.sprite.Sprite):
         elif player_dist_y <= 4:
             # moving down
             y_move -= self.dy
-
+        # used for collision detection
         x_val = self.rect.x + x_move + offset_x
         y_val = self.rect.y + y_move + offset_y
-
         # enemy object collision detection
         obj_collision = False
         self.dummy_sprite.rect.x = x_val
@@ -280,7 +278,7 @@ class Enemy(pygame.sprite.Sprite):
         is_passable = not my_map[(self.rect.y + y_move + offset_y) >> 5][(self.rect.x + x_move + offset_x) >> 5].blocked
         if is_passable and not obj_collision:
             self.rect.move_ip(x_move, y_move)
-            # enemy animation
+            # enemy animation - performed only if enemy can move
             if self.img_frame_num < self.frames - 1:
                 if self.elapsed_frames > 1:
                     self.img_frame_num += 1
@@ -288,12 +286,12 @@ class Enemy(pygame.sprite.Sprite):
             else:
                 self.img_frame_num = 0
         # direction in which player is facing
-        if abs(player_dist_y) > abs(player_dist_x):  # up or down
+        if abs(player_dist_y) > abs(player_dist_x):  # face up or down
             if player_dist_y > 0:
                 facing = CHARACTER_FACING_DOWN
             else:
                 facing = CHARACTER_FACING_UP
-        else:  # left or right
+        else:  # face left or right
             if player_dist_x > 0:
                 facing = CHARACTER_FACING_RIGHT
             else:
@@ -328,6 +326,7 @@ class Player(pygame.sprite.Sprite):
         self.img_frame_num = 0
         # init image
         self.image = self.images_lst[CHARACTER_FACING_DOWN][0]
+        # used for collision detection
         self.dummy_sprite = EmptySprite(Rect(0, 0, 4, 8))
         # init rect
         self.rect = self.image.get_rect()
@@ -337,7 +336,7 @@ class Player(pygame.sprite.Sprite):
         Moves the player around the map. Determines if the player is colliding with a wall,
          is able to pick up a key, and if is able to go on to the next level.
         :param my_map: (map) holds map data
-        :param other_objs: (list) objects that cannot be traversed through: tombs/rocks/desks/etc.
+        :param other_objs: (list) objects that cannot be traversed through: tombstones/rocks/desks/etc.
         :param key: (list) keys to collect
         """
         # used for detecting collision
@@ -397,12 +396,9 @@ def load_image(name, colorkey=None):
     """
     This method loads an image from the data.images dir and creates a
     pixel-bit-map image from it.
-    :param name: of image file
-    :type name: str
-    :param colorkey: to make transparent
-    :type colorkey: -1 or some rgb-color
+    :param name: (string) of image file
+    :param colorkey: (tuple) to make transparent
     :return: pixel-bit image, rectangle
-    :rtype: pixel-bit image, Rectangle
     """
     fullname = os.path.join('data', 'images')
     fullname = os.path.join(fullname, name)
