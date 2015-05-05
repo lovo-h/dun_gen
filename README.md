@@ -1,7 +1,7 @@
 ## Installation Instructions
 ============================
 
-#### Installing Python and Pygame:
+### Installing Python and Pygame:
 1. Download and install Python 2.7.8: https://www.python.org/downloads/release/python-278/
 2. Download and install PyGame 1.9: http://pygame.org/download.shtml
 
