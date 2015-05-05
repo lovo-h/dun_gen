@@ -1,14 +1,12 @@
 
 ### Installation Instructions
-#### Linux/OSX:
-In your terminal, run:
-`sudo apt-get install python-pygame`
 
-#### Windows:
-Download and install PyGame. Can be found here: http://pygame.org/download.shtml
+#### Installing Python and Pygame:
+1. Download and install Python 2.7.8: https://www.python.org/downloads/release/python-278/
+2. Download and install PyGame 1.9: http://pygame.org/download.shtml
 
 ### Running The Game: Dun-Gen
-In your terminal, type: 
-`python /path/to/dun_gen/main.py`
+1. In your terminal, type: `python /path/to/dun_gen/main.py`
+  * Or you can use your favorite IDE.
 
 
