@@ -155,12 +155,9 @@ class DunGen:
         """
         Handles all of the display functionality.
         """
+        # draw scene and objects
         self.draw_walls_floors_to_screen()
         self.draw_objects_to_screen()
-        self.keys_remaining_msg()
-        self.draw_demo_msg()
-        self.draw_debug_msg()
-
         # draw enemies, if near player or in god-mode
         for sprite in self.map.enemies_lst:
             if pygame.sprite.collide_circle(sprite, self.player) or self.god_mode:
@@ -168,6 +165,10 @@ class DunGen:
         # draw player
         for sprite in self.player_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
+        # finally, draw text
+        self.keys_remaining_msg()
+        self.draw_demo_msg()
+        self.draw_debug_msg()
         # present changes to window
         pygame.display.flip()
 

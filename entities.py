@@ -269,13 +269,13 @@ class Enemy(pygame.sprite.Sprite):
         # enemy object collision detection
         obj_collision = False
         self.dummy_sprite.rect.x = x_val
-        self.dummy_sprite.y = y_val
+        self.dummy_sprite.rect.y = y_val
         for obj in other_objs:
             obj_collision = pygame.sprite.collide_rect(self.dummy_sprite, obj)
             if obj_collision:
                 break
         # determine if player can move in x-y direction
-        is_passable = not my_map[(self.rect.y + y_move + offset_y) >> 5][(self.rect.x + x_move + offset_x) >> 5].blocked
+        is_passable = not my_map[y_val >> 5][x_val >> 5].blocked
         if is_passable and not obj_collision:
             self.rect.move_ip(x_move, y_move)
             # enemy animation - performed only if enemy can move
@@ -387,7 +387,7 @@ class Player(pygame.sprite.Sprite):
             if obj_collision:
                 break
         # determine if player can move in x-y direction
-        if not my_map[(self.rect.y + y_move + offset_y) >> 5][(self.rect.x + x_move + offset_x) >> 5].blocked and \
+        if not my_map[y_val >> 5][x_val >> 5].blocked and \
                 not obj_collision:
             self.rect.move_ip(x_move, y_move)
 

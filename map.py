@@ -88,8 +88,8 @@ class TheMap(object):
         collide with each other.
         :param rooms: (list) will hold the rooms generated
         """
-        room_tries = len(self.landscape) * len(self.landscape[0]) >> 7  # times to try to create room: area / 128
-        max_room_dimension = max(5, room_tries >> 2)  # max-room-dimension: max(5, area / 512)
+        room_tries = len(self.landscape) * len(self.landscape[0]) >> 6  # times to try to create room: area / 64
+        max_room_dimension = max(5, room_tries >> 2)  # max-room-dimension: max(5, area / 256)
         if max_room_dimension > 14:  # bound of room dimension: 14
             max_room_dimension = 14
         for n in range(room_tries):

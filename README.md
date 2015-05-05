@@ -9,5 +9,3 @@
 1. In your terminal, type: `python /path/to/dun_gen/main.py`
   * Or you can use your favorite IDE.
   * NOTE: you may need to run python2.7-32 on OSX: `python2.7-32 /path/to/dun_gen/main.py`
-
-
