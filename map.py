@@ -157,7 +157,7 @@ class TheMap(object):
             some_room = rooms.pop(indx)
             self.add_keys(some_room)
             # add a guard
-            if random.randint(0, 20 - self.probability_enemy_appears) < 5:  # init: 20% probability
+            if True:  # init: 20% probability
                 self.add_enemies(some_room)
 
     def create_h_hall(self, pcx, ncx, pcy):

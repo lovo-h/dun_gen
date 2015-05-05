@@ -72,6 +72,7 @@ class DunGen:
         self.enemy_prob = 0
         # creates the clock
         self.clock = pygame.time.Clock()
+        self.time = pygame.time.get_ticks()
         # init player
         self.player = Player()
         self.player.rect.left = self.map.player_start_loc[0]
@@ -92,7 +93,7 @@ class DunGen:
         This initializes everything and starts the main-loop.
         """
         # allows key-strokes to repeat if they're held down
-        pygame.key.set_repeat(60, 30)
+        pygame.key.set_repeat(10, 30)
         # clear the background: black
         self.background = self.background.convert()
         self.background.fill((0, 0, 0))
@@ -105,6 +106,7 @@ class DunGen:
         """
         Handles all of the events-functionality: keys-pressed, etc.
         """
+        now = pygame.time.get_ticks()
         for e in pygame.event.get():
             if e.type == KEYDOWN:
                 if (e.key == K_RIGHT) or (e.key == K_LEFT) or (e.key == K_UP) or (e.key == K_DOWN):
@@ -119,14 +121,16 @@ class DunGen:
                                                                                                   "stairs"], False):
                         self.seen_first_stairs = True
                         self.load_new_map()
-                elif e.key == K_d:
+                elif e.key == K_d and now - self.time > 250:
                     # enter debug-mode
                     self.debug_mode = not self.debug_mode
                     if self.god_mode:
                         self.god_mode = not self.god_mode
-                elif self.debug_mode and e.key == K_g:
+                    self.time = now
+                elif self.debug_mode and e.key == K_g and now - self.time > 250:
                     # enter god-mode
                     self.god_mode = not self.god_mode
+                    self.time = now
                 elif e.key == K_ESCAPE:
                     quit()
                 # debug mode doesn't allow the map to grow
@@ -275,8 +279,8 @@ class DunGen:
         Displays debug information at the top right of the screen
         """
         text_pos_x = self.window_width - 100  # x-coord to place msg
-        text_pos_y = 30 # y-coord to place msg
-        text_offset_y = 14    # offset y-coord for next lines
+        text_pos_y = 30  # y-coord to place msg
+        text_offset_y = 14  # offset y-coord for next lines
         if self.debug_mode:
             self.display_text_to_screen(16, "Debug mode(d): on", pos_x=text_pos_x, pos_y=text_pos_y)
             if self.god_mode:

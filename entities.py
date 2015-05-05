@@ -214,7 +214,7 @@ class Enemy(pygame.sprite.Sprite):
         self.frames = 9
         self.frames_row = 4
         self.elapsed_frames = 0
-        player_sprites = SpriteSheet("player_walk_sprite.png")
+        player_sprites = SpriteSheet("enemy.png")
         self.images_lst = list()
         for x in range(self.frames_row):
             tuple_lst = list()
