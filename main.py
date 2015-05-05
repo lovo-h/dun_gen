@@ -16,7 +16,9 @@ Abstract:
           be added.
         - finally, it places random objects at a random location within a room: this does mean that there may be
           instances in which some pathway may be blocked. This is fixable by placing objects randomly
-          in a room, in a dimension 1 unit-size smaller than the room's dimension.
+          in a room, in a dimension 1 unit-size smaller than the room's dimension. Additionally, this does
+          not mean that some rooms are inaccessible since every room has an entrance and an exit path. So,
+          players are able to enter through the exit path if the entrance is blocked and vice-versa.
 
     Initially, the entire map is blacked out and as the player traverses the map, the map's features are
     revealed. The radius of the light around the player may be changed in: ENTITIES.PY (PLAYER_FOV_DIST).
@@ -64,6 +66,7 @@ class DunGen:
         self.window_height = height
         # create the screen
         self.screen = pygame.display.set_mode((self.window_width, self.window_height))
+        pygame.display.set_caption("Dun-Gen")
         # noinspection PyArgumentList
         self.background = pygame.Surface((self.window_width, self.window_height))
         # generate the map
